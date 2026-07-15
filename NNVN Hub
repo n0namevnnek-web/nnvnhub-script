@@ -40,22 +40,188 @@ end
 -- 👇 YOUR MAIN SCRIPT CODE STARTS HERE 👇
 -------------------------------------------------------------------------------
 --[[
-    ANIMAL HOSPITAL ESP
+    ANIMAL HOSPITAL ESP - MENU NHỎ (Toraisme Style)
     Skinwalker: RED Highlight + "Skinwalker" tag
     Normal Animal: GREEN Highlight + "Animal" tag
-    Press K to toggle ESP
 --]]
 
 local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+
 local NPCs = workspace:FindFirstChild("NPCs")
 local SkinwalkerFolder = game:GetService("ReplicatedStorage"):FindFirstChild("Skinwalkers")
 
 if not NPCs then return end
 
+-- ===== VARIABLES =====
 local ESPEnabled = true
+local MenuVisible = false
 local Highlights = {}
 local Tags = {}
+local Dragging = false
+local DragStart = nil
+local DragOffset = nil
 
+-- ===== CREATE MENU =====
+local function CreateMenu()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "ESP_Menu"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = LocalPlayer.PlayerGui
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    -- Main Frame
+    local main = Instance.new("Frame")
+    main.Name = "MainFrame"
+    main.Parent = screenGui
+    main.Size = UDim2.new(0, 180, 0, 110)
+    main.Position = UDim2.new(0.02, 0, 0.3, 0)
+    main.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    main.BorderSizePixel = 0
+    main.BackgroundTransparency = 0.1
+    
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.Parent = main
+    mainCorner.CornerRadius = UDim.new(0, 10)
+    
+    -- Drop Shadow
+    local shadow = Instance.new("Frame")
+    shadow.Parent = main
+    shadow.Size = UDim2.new(1, 0, 1, 0)
+    shadow.Position = UDim2.new(0, 0, 0, 0)
+    shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    shadow.BackgroundTransparency = 0.6
+    shadow.ZIndex = 0
+    
+    local shadowCorner = Instance.new("UICorner")
+    shadowCorner.Parent = shadow
+    shadowCorner.CornerRadius = UDim.new(0, 10)
+    
+    -- Title Bar
+    local titleBar = Instance.new("Frame")
+    titleBar.Parent = main
+    titleBar.Size = UDim2.new(1, 0, 0, 30)
+    titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    titleBar.BackgroundTransparency = 0.2
+    titleBar.BorderSizePixel = 0
+    
+    local titleBarCorner = Instance.new("UICorner")
+    titleBarCorner.Parent = titleBar
+    titleBarCorner.CornerRadius = UDim.new(0, 10)
+    
+    -- Title
+    local title = Instance.new("TextLabel")
+    title.Parent = titleBar
+    title.Size = UDim2.new(1, -40, 1, 0)
+    title.Position = UDim2.new(0, 10, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "🐾 ESP"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 14
+    
+    -- Close Button
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Parent = titleBar
+    closeBtn.Size = UDim2.new(0, 20, 0, 20)
+    closeBtn.Position = UDim2.new(1, -25, 0, 5)
+    closeBtn.BackgroundTransparency = 1
+    closeBtn.Text = "✕"
+    closeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    closeBtn.TextSize = 14
+    closeBtn.Font = Enum.Font.GothamBold
+    
+    closeBtn.MouseButton1Click:Connect(function()
+        MenuVisible = false
+        main.Visible = false
+    end)
+    
+    -- Divider Line
+    local divider = Instance.new("Frame")
+    divider.Parent = main
+    divider.Size = UDim2.new(0.9, 0, 0, 1)
+    divider.Position = UDim2.new(0.05, 0, 0, 30)
+    divider.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+    divider.BorderSizePixel = 0
+    
+    -- ESP Toggle Button
+    local espBtn = Instance.new("TextButton")
+    espBtn.Parent = main
+    espBtn.Size = UDim2.new(0.85, 0, 0, 30)
+    espBtn.Position = UDim2.new(0.075, 0, 0, 40)
+    espBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+    espBtn.Text = "✅ ESP: ON"
+    espBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    espBtn.TextSize = 13
+    espBtn.Font = Enum.Font.GothamBold
+    
+    local espBtnCorner = Instance.new("UICorner")
+    espBtnCorner.Parent = espBtn
+    espBtnCorner.CornerRadius = UDim.new(0, 6)
+    
+    -- Status Label
+    local status = Instance.new("TextLabel")
+    status.Parent = main
+    status.Size = UDim2.new(1, -10, 0, 20)
+    status.Position = UDim2.new(0.025, 0, 0, 75)
+    status.BackgroundTransparency = 1
+    status.Text = "🟢 ESP: ON | K to toggle"
+    status.TextColor3 = Color3.fromRGB(150, 150, 170)
+    status.TextSize = 10
+    status.Font = Enum.Font.GothamMedium
+    
+    -- ===== DRAG FUNCTION =====
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            Dragging = true
+            DragStart = input.Position
+            DragOffset = main.Position
+        end
+    end)
+    
+    titleBar.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            Dragging = false
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if Dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - DragStart
+            main.Position = UDim2.new(
+                DragOffset.X.Scale,
+                DragOffset.X.Offset + delta.X,
+                DragOffset.Y.Scale,
+                DragOffset.Y.Offset + delta.Y
+            )
+        end
+    end)
+    
+    -- ===== ESP TOGGLE =====
+    espBtn.MouseButton1Click:Connect(function()
+        ESPEnabled = not ESPEnabled
+        espBtn.Text = ESPEnabled and "✅ ESP: ON" or "❌ ESP: OFF"
+        espBtn.BackgroundColor3 = ESPEnabled and Color3.fromRGB(0, 150, 255) or Color3.fromRGB(200, 50, 50)
+        status.Text = ESPEnabled and "🟢 ESP: ON | K to toggle" or "🔴 ESP: OFF | K to toggle"
+        UpdateESP()
+    end)
+    
+    -- ===== KEYBIND TOGGLE MENU =====
+    UserInputService.InputBegan:Connect(function(input, gp)
+        if gp then return end
+        if input.KeyCode == Enum.KeyCode.K then
+            MenuVisible = not MenuVisible
+            main.Visible = MenuVisible
+        end
+    end)
+    
+    return screenGui, main, espBtn, status
+end
+
+-- ===== ESP FUNCTIONS =====
 local function IsSkinwalker(animal)
     if animal:GetAttribute("Skinwalker") == true then return true end
     if SkinwalkerFolder then
@@ -163,14 +329,7 @@ local function UpdateESP()
     end
 end
 
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.K then
-        ESPEnabled = not ESPEnabled
-        UpdateESP()
-    end
-end)
-
+-- ===== EVENTS =====
 NPCs.ChildAdded:Connect(function(child)
     task.wait(0.1)
     if child:IsA("Model") then UpdateESP() end
@@ -185,5 +344,7 @@ NPCs.ChildRemoved:Connect(function(child)
     Tags[child] = nil
 end)
 
+-- ===== START =====
+CreateMenu()
 UpdateESP()
 print(ProtectionConfig.HubName .. " Loaded Successfully!")
