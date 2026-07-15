@@ -43,8 +43,8 @@ local Config = {
     MainGuiName     = "", -- Name of the main script's GUI to check if it's already executing
 
     -- [7] Hub Information & UI Text
-    HubName         = "Test", -- The main title shown at the top of the GUI
-    HubDescription  = "Test" -- The text shown below the title
+    HubName         = "NNVN Hub", -- The main title shown at the top of the GUI
+    HubDescription  = "Animal Hospital Script" -- The text shown below the title
 }
 
 -------------------------------------------------------------------------------
